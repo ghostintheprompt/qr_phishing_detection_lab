@@ -4,8 +4,7 @@ Companion code for [The Watch Sale, the QR Code, and the Filter That Never
 Looked](https://ghostintheprompt.com/articles/the-watch-sale-the-qr-code-and-the-filter-that-never-looked)
 on [GhostInThePrompt.com](https://ghostintheprompt.com). The article covers
 the incident and the argument; this repo is the actual code referenced in
-it — `detector.py` (50 lines of real logic, 84 total with the docstring and
-spacing) is run for real, not pasted as an illustration.
+it — `detector.py` is run for real, not pasted as an illustration.
 
 ## The real incident
 
@@ -41,6 +40,7 @@ indictment: the fix is cheap and available, not a research problem.
 python3 -m venv .venv && source .venv/bin/activate
 pip install "qrcode[pil]" opencv-python-headless
 python3 detector.py
+python3 -m unittest -v
 ```
 
 Output:
@@ -66,3 +66,12 @@ Risk level: high
 
 EBAY SUCKS
 
+## Hostname boundary correction — October 24, 2026
+
+The original off-platform check searched for `ebay.com` anywhere in the URL
+netloc. A lookalike hostname or userinfo could therefore score low risk. The
+scorer now uses the parsed hostname, requires the exact platform domain or a
+true subdomain, flags embedded credentials and ambiguous URL characters, and
+rejects malformed ports/authorities. Regression tests cover those cases,
+legitimate subdomains, and the original shortener sample. These checks remain
+local heuristics, not destination reputation or redirect verification.

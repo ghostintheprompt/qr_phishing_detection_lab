@@ -40,13 +40,22 @@ def decode_qr(path: str) -> str | None:
 
 
 def score_url(url: str) -> dict:
-    parsed = urlparse(url)
-    host = parsed.netloc.lower()
+    flags = []
+    try:
+        parsed = urlparse(url)
+        host = (parsed.hostname or "").lower().rstrip(".")
+        parsed.port  # Reject malformed or out-of-range ports.
+    except ValueError:
+        return {"url": url, "host": "", "risk_flags": ["malformed URL"],
+                "risk_level": "high"}
     tld = host.rsplit(".", 1)[-1] if "." in host else ""
 
-    flags = []
-    if PLATFORM_DOMAIN not in host:
+    if not (host == PLATFORM_DOMAIN or host.endswith("." + PLATFORM_DOMAIN)):
         flags.append("off-platform domain: conversation claims to be a marketplace transaction, link does not resolve to the marketplace's own domain")
+    if parsed.username is not None or parsed.password is not None:
+        flags.append("embedded credentials: authority can disguise the actual destination")
+    if "\\" in url or any(c.isspace() or ord(c) < 32 or ord(c) == 127 for c in url):
+        flags.append("ambiguous URL: whitespace, control character, or backslash")
     if host in URL_SHORTENERS:
         flags.append("known URL shortener: destination is hidden behind a redirect, can't be inspected before clicking")
     if tld in SUSPICIOUS_TLDS:
